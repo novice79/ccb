@@ -22,14 +22,25 @@ class WsDealer {
         sock2id[socket] = id
     }
     suspend fun cli_offline(socket: WebSocketSession) {
-        if( sock2id.contains(socket) ){
-            id2sock.remove( sock2id[socket] )
+        if( sock2id[socket] != null ){
+            val cli_id = sock2id[socket]
+            // logger.info("$cli_id offline")
+            id2sock.remove( cli_id )
             sock2id.remove( socket )
+        } else {
+            // println("no contain $socket")
         }
     }
     suspend fun handle_msg(req: Command, sock: WebSocketSession) {
         if(req.cmd == "reg_cli_id"){
             cli_online(req.data, sock)
+            val paids = mdb.find_pending_paid(req.data)
+            paids.forEach { 
+                val order = Order(it.out_trade_no, it.total_amount, it.body, format_instant(it.createdAt), it.time_end )
+                if( notify_pay_success(it.cli_id!!, order) ){
+                    mdb.del_po_by_oid(it.out_trade_no) 
+                }
+            }
         } else if(req.cmd == "req_qr"){
             try{
                 val data = json_mapper.readValue<Pending>(req.data)
@@ -58,16 +69,20 @@ class WsDealer {
             
         }
     }
-    suspend fun notify_pay_success(cli_id: String, o: Order){
-        // val ostr = json_mapper.writeValueAsString(o) 
-        val res_data = json_mapper.writeValueAsString(
-            mapOf(
-                "cmd" to "pay_success",
-                "data" to o
-            )
-        ) 
-        logger.info("websocket notify $cli_id: ${res_data}")
-        id2sock[cli_id]?.send(Frame.Text(res_data))
+    suspend fun notify_pay_success(cli_id: String, o: Order): Boolean{
+        val t_sock = id2sock[cli_id]
+        if(t_sock != null){
+            val res_data = json_mapper.writeValueAsString(
+                mapOf(
+                    "cmd" to "pay_success",
+                    "data" to o
+                )
+            ) 
+            logger.info("websocket notify $cli_id: ${res_data}")
+            t_sock.send(Frame.Text(res_data))
+            return true
+        }
+        return false        
     }
     // suspend fun memberJoin(id: String, socket: WebSocketSession) {
 

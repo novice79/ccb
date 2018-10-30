@@ -24,7 +24,7 @@ import kotlinx.coroutines.channels.*
 import kotlin.system.*
 import kotlin.math.round
 import kotlinx.html.*
-import kotlinx.coroutines.experimental.*
+import kotlinx.coroutines.*
 
 import com.fasterxml.jackson.core.util.*
 import com.fasterxml.jackson.databind.*
@@ -49,6 +49,12 @@ val mdb = Mdb()
 val ws = WsDealer()
 val json_mapper = jacksonObjectMapper()
 fun Application.main() {
+     launch {
+        while(true){
+            delay(1000)
+            // println("--Launch-- bg job : ${Thread.currentThread().getName()}")
+        }       
+    }
     install(DefaultHeaders)
     install(FreeMarker) {
         templateLoader = ClassTemplateLoader(this::class.java.classLoader, "templates")
@@ -70,18 +76,22 @@ fun Application.main() {
     routing {
         post("/notify") {
             try{
-                val data = call.receive<Pending>()
-                logger.info("notify callback [$data]")
-                call.respond( "success")
-                val o = mdb.find_po_by_oid(data.out_trade_no)
+                //or some other format
+                val data = call.receive<StrMap>()
+                logger.info("ccb notify callback [$data]")
+                val order_id = data["ORDERID"]!!
+                val o = mdb.find_po_by_oid(order_id)
                 if(o != null){
                     val finish_order = Order(o.out_trade_no, o.total_amount, o.body, format_instant(o.createdAt), format_now() )
                     mdb.insert_success_order(finish_order)
                     if(o.cli_id != null){ 
-                        ws.notify_pay_success(o.cli_id, finish_order)
-                    }
-                    
+                        if( ws.notify_pay_success(o.cli_id, finish_order) )
+                            mdb.del_po_by_oid(order_id) 
+                        else 
+                            mdb.update_to_paid(order_id)
+                    }                    
                 }
+                call.respond( "success")
             }
             catch(e:Exception){
                 call.respond( "failed" )
@@ -112,8 +122,10 @@ fun Application.main() {
             }
         }
         post("/test") {
+            
             val data = call.receive<Pending>()
-            mdb.insert_pending_order(data)
+            val paid = mdb.find_pending_paid(data.cli_id!!)
+            paid.forEach { println(it) }
             call.respond( format_now() )
             // call.aaaa()
             // try{
@@ -172,6 +184,7 @@ fun Application.main() {
                 }
             } finally {
                 // Either if there was an error, of it the connection was closed gracefully.
+                println("$this offlined")
                 ws.cli_offline(this)
             }
         }

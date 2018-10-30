@@ -16,7 +16,7 @@
       <div style="color:white;margin-top:.5em;">总计：{{parseFloat(total).toFixed(2)}}(元)</div>
       <button v-if="total>0 && !requesting" @click.prevent="gzh_buy()">公众号购买</button>
       <button v-if="total>0 && !requesting" @click.prevent="qr_buy()">扫码支付</button>
-      <div v-if="requesting" style="color:gold;"> 请稍后……</div>
+      <div v-if="requesting" style="color:gold;"> <h2>请稍后……</h2> </div>
       <canvas id="qr"></canvas>
     </div>
     <footer>for 建行支付测试</footer>

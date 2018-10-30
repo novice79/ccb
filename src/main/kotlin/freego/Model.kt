@@ -16,6 +16,7 @@ data class Pending(
     val cli_id: String? = null,
     val notify_url: String? = null,
     val createdAt: Instant = Instant.now(),
+    val time_end: String? = null,
     val status: String = "unpaid"
 )
 
