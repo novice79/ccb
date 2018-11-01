@@ -62,6 +62,7 @@ dependencies {
     compile "io.ktor:ktor-client-jackson:$ktor_version"
     compile "io.ktor:ktor-websockets:$ktor_version"
     compile 'org.litote.kmongo:kmongo:3.8.3'
+    compile 'com.sun.mail:javax.mail:1.6.2'
     compile "com.fasterxml.jackson.module:jackson-module-kotlin:$jackson_version"
     compile "com.fasterxml.jackson.datatype:jackson-datatype-jsr310:$jackson_version"
     compile "ch.qos.logback:logback-classic:1.2.1"

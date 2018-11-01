@@ -122,10 +122,10 @@ fun Application.main() {
             }
         }
         post("/test") {
-            
-            val data = call.receive<Pending>()
-            val paid = mdb.find_pending_paid(data.cli_id!!)
-            paid.forEach { println(it) }
+            sendMail("告警测试", "入侵警告")
+            // val data = call.receive<Pending>()
+            // val paid = mdb.find_pending_paid(data.cli_id!!)
+            // paid.forEach { println(it) }
             call.respond( format_now() )
             // call.aaaa()
             // try{
