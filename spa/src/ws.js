@@ -8,11 +8,11 @@ class WS {
       window.cli_id = uuidv1()
       localStorage.setItem('cli_id', window.cli_id)
     }
+    _.bindAll(this, ['on_message', 'on_close', 'on_error', 'on_open'])
     this.init()
   }
   init() {
-    this.ws = new WebSocket("ws://" + window.location.host + location.pathname + "/ws");
-    _.bindAll(this, ['on_message', 'on_close', 'on_error', 'on_open'])
+    this.ws = new WebSocket("ws://" + window.location.host + location.pathname + "/ws");    
     this.ws.onmessage = this.on_message;
     this.ws.onclose = this.on_close;
     this.ws.onerror = this.on_error;
@@ -33,6 +33,7 @@ class WS {
     console.log('onerror', err)
   }
   on_close() {
+    this.init()
     console.log('onclose')
   }
   on_open() {
