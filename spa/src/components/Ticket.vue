@@ -3,14 +3,14 @@
     <header>南岳门票处</header>
     <div class="content">
       <div class="ti" v-for="t in tickets">
-        <div style="min-width:7em;">{{t.name}}</div>
+        <div style="min-width:6em;">{{t.name}}</div>
         <div>{{t.price}}(元)</div>
         <div class="count">
           {{t.count}}(张)
           &nbsp;
-          <button class="op" @click.prevent="++t.count">+</button>
+          <button class="op" @click.prevent="++t.count">&plus;</button>
           &nbsp;
-          <button class="op" @click.prevent="t.count > 0 ? --t.count: 0">-</button>
+          <button class="op" @click.prevent="t.count > 0 ? --t.count: 0">&minus;</button>
         </div>
       </div>
       <div style="color:white;margin-top:.5em;">总计：{{parseFloat(total).toFixed(2)}}(元)</div>
@@ -141,8 +141,8 @@ canvas{
   align-items: center;
 }
 .ti {
-  border: 1px dashed purple;
-  margin: 0.5em 1rem 0;
+  border: 2px inset grey;
+  margin: 0.5em .5rem 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -172,12 +172,16 @@ footer {
 }
 button {
   font-size: 1.2rem;
-  margin: 0.5em 1rem;
+  margin: 0.5em .5rem;
   background-color: bisque;
-  border-radius: 0.7em;
+  border-radius: 0.9em;
   color: #42b983;
 }
 .op {
+  opacity: .7;
+  background-color: lightsalmon;
+  color: blue;
+  padding: 0.2em .5em;
   font-weight: 900;
   display: inline-block;
   margin: inherit;

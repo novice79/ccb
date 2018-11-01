@@ -1,1 +1,21 @@
 sudo sysctl -w net.core.somaxconn=4096
+
+after npm install normalize.css
+
+within main.js: import 'normalize.css';
+OR
+within App.vue:
+
+<style>
+@import '~normalize.css';
+...
+The ~ was required in the <style usage.
+
+For Single File Components (with Vue.js v2) : <style src="./my-component.css"></style>
+
+<!-- my-component.vue -->
+<template>
+  <div>This will be pre-compiled</div>
+</template>
+<script src="./my-component.js"></script>
+<style src="./my-component.css"></style>
