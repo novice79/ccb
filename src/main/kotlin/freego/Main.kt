@@ -77,9 +77,11 @@ fun Application.main() {
         post("/notify") {
             try{
                 //or some other format
-                val data = call.receive<StrMap>()
-                logger.info("ccb notify callback [$data]")
-                val order_id = data["ORDERID"]!!
+                // val data = call.receive<String>()
+                // logger.info("ccb notify callback [$data]")
+                val qs = call.request.queryString()
+                logger.info("ccb notify callback query string = [$qs]")
+                val order_id = call.request.queryParameters["ORDERID"]!!
                 val o = mdb.find_po_by_oid(order_id)
                 if(o != null){
                     val finish_order = Order(o.out_trade_no, o.total_amount, o.body, format_instant(o.createdAt), format_now() )
@@ -122,11 +124,17 @@ fun Application.main() {
             }
         }
         post("/test") {
-            sendMail("告警测试", "入侵警告")
+            val qs = call.request.queryString()
+            println("in post /test $qs")
+            // val tcp = TcpClient()
+            // tcp.open("127.0.0.1", 8888)
+            // val ret = tcp.send("send from david")
+            // tcp.close()
+            // sendMail("告警测试", "入侵警告")
             // val data = call.receive<Pending>()
             // val paid = mdb.find_pending_paid(data.cli_id!!)
             // paid.forEach { println(it) }
-            call.respond( format_now() )
+            call.respond( format_now() + qs )
             // call.aaaa()
             // try{
             //     val data = call.receive<ReqData>()
@@ -208,7 +216,12 @@ fun Application.main() {
             defaultResource("index.html")
         }
         get("/return") {
-            call.respondText("HELLO WORLD")
+            val qs = call.request.queryString()
+            logger.info("in /return querystring = $qs")
+            val order_id = call.request.queryParameters["ORDERID"]!!
+            // todo: find order in db and redirect with order info
+            call.respondRedirect("/ccb/#/finish?oid=$order_id", permanent = true)
+            // POSID=026820746&BRANCHID=430000000&ORDERID=20181105230332034&PAYMENT=.01&CURCODE=01&REMARK1=E58D97E5B2B3E997A8E7A5A8&REMARK2=&SUCCESS=Y&TYPE=1&REFERER=&CLIENTIP=113.247.56.20&SIGN=95338e87c26610d36d23fe6690744b7cd60d444d212f6582c024d13152e08cb6332d1681465b54abce6cd7cdbd6de74e870239beefd8df6e56706da1e767a3093b6765a4a254a17e88e3ee7a8b96d85edaf49703e7226262e11723f457d9a5117c44ce989b62a3ece5066b55faf8b19a5cfbd9543e1f325e2967d93261d932ee
         }
     }    
 }

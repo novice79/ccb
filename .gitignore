@@ -28,6 +28,7 @@ hs_err_pid*
 build/
 libs/
 public/
+refer/
 bin/
 .classpath
 [sS]ecret*

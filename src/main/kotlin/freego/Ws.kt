@@ -49,6 +49,7 @@ class WsDealer {
                     mapOf(
                         "ret" to 0,
                         "cmd" to req.cmd,
+                        "data" to req.data,
                         "qr_url" to qr_url
                     )
                 ) 

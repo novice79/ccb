@@ -59,15 +59,15 @@ suspend fun ccb_req_qr(data: Pending): String{
     "RETURNTYPE" to "3",
     "TIMEOUT" to ""
     )
-    var m1 = data.body
+    // var m1 = data.body
     // m1 = URLEncoder.encode(m1, "UTF-8")
     // m1 = Base64.getEncoder().encode("大庙门票".toByteArray()).toString()
-    val charset = Charsets.UTF_8
-    m1 = DatatypeConverter.printHexBinary(m1.toByteArray(charset)) 
+    // val charset = Charsets.UTF_8
+    // m1 = DatatypeConverter.printHexBinary(m1.toByteArray(charset)) 
     // println(m1)
     // val om1 = DatatypeConverter.parseHexBinary(m1)
     // println( om1.toString(charset) )
-    order["REMARK1"] = m1 
+    // order["REMARK1"] = m1 
     order["ORDERID"] = data.out_trade_no 
     order["PAYMENT"] = "%.2f".format( data.total_amount / 100.0) 
     // println(order)

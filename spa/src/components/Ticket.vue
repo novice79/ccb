@@ -2,6 +2,7 @@
   <div class="ticket">
     <header>南岳门票处</header>
     <div class="content">
+      <!-- <button @click.prevent="to_finish()">go test</button> -->
       <div class="ti" v-for="t in tickets">
         <div style="min-width:6em;">{{t.name}}</div>
         <div>{{t.price}}(元)</div>
@@ -36,10 +37,13 @@ export default {
   created: function() {
     this.$root.$on("req_qr", data => {
       this.requesting = false
+      this.save_session(data.data)
       this.cb(data);
     });
     this.$root.$on("pay_success", data => {
-      alert('支付成功')
+      this.$router.push('finish')
+      // this.$router.replace('finish')
+      
     });
     
   },
@@ -82,9 +86,27 @@ export default {
         0
       );
       return total;
+    },
+    caption() {
+      let title = _.reduce(
+        this.tickets,
+        (cap, t) => {
+          return t.count > 0 ?cap + `${t.name}(${t.count})+` : cap;
+        },
+        ''
+      );
+      if(title.length > 1) title = title.slice(0, title.length - 1)
+      return title;
     }
   },
   methods: {
+    // to_finish(){
+    //   this.$router.replace('finish')
+    // },
+    save_session(order){
+      console.log('save session:'+ order, typeof order)
+      sessionStorage.setItem('order', order) 
+    },
     req_qr() {
       this.requesting = true;
       const data = {
@@ -92,7 +114,7 @@ export default {
         data: JSON.stringify({
           out_trade_no: moment().format("YYYYMMDDHHmmssSSS"),
           total_amount: this.total * 100,
-          body: "南岳门票",
+          body: this.caption,
           cli_id
         })
       };
