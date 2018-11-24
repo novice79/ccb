@@ -24,7 +24,7 @@ import kotlinx.coroutines.channels.*
 import kotlin.system.*
 import kotlin.math.round
 import kotlinx.html.*
-import kotlinx.coroutines.experimental.*
+import kotlinx.coroutines.*
 
 import com.fasterxml.jackson.core.util.*
 import com.fasterxml.jackson.databind.*
@@ -72,11 +72,7 @@ suspend fun ccb_req_qr(data: Pending): String{
     order["PAYMENT"] = "%.2f".format( data.total_amount / 100.0) 
     // println(order)
     val para = order.toList().formUrlEncode()            
-
-    val md = MessageDigest.getInstance("MD5")
-    md.update("$para&PUB=$ccb_pub30".toByteArray() )
-    val digest = md.digest()
-    val mac = DatatypeConverter.printHexBinary(digest).toLowerCase();
+    val mac = md5("$para&PUB=$ccb_pub30" )
     val url = "$ccb_url&${para}&MAC=${mac}"
     val client = HttpClient() {
         install(JsonFeature) {
@@ -95,7 +91,14 @@ suspend fun ccb_req_qr(data: Pending): String{
     // println(inner_ret)
     val qr_res = json_mapper.readValue<StrMap>(inner_ret)
     val qr_url = URLDecoder.decode(qr_res["QRURL"]!!, "UTF-8")
+    
     return qr_url
+}
+fun md5(data: String): String{
+    val md = MessageDigest.getInstance("MD5")
+    md.update(data.toByteArray() )
+    val digest = md.digest()
+    return DatatypeConverter.printHexBinary(digest).toLowerCase();
 }
 fun format_now(): String{
     val instant = Instant.now()
@@ -107,4 +110,91 @@ fun format_instant(instant: Instant): String{
                      .withZone( ZoneId.of( "Asia/Shanghai" ) )
     val output = formatter.format( instant )
     return output
+}
+fun affixed_qr_url(c: ApplicationCall, qr_url: String, out_trade_no: String): String{
+    val qs = listOf(
+        "tourl" to qr_url,
+        "out_trade_no" to out_trade_no
+        ).formUrlEncode()
+    return "${my_url(c)}/relay?$qs"
+}
+fun my_url(c: ApplicationCall): String{
+    var uri =  "${c.request.origin.scheme}://${c.request.origin.host}"
+    if( !( (c.request.origin.scheme == "http" && c.request.origin.port == 80)  
+        || (c.request.origin.scheme == "https" && c.request.origin.port == 443)
+        )
+    ){
+        uri = "$uri:${c.request.origin.port}"
+    }
+    return "$uri$residence"
+}
+suspend fun post_order( url: String, data: Order, count: Int = 5){
+    val client = HttpClient() {
+        install(JsonFeature) {
+            serializer = JacksonSerializer()
+        }
+    }
+    try{
+        val json = client.post<String>{
+            url(URL(url))
+            contentType(ContentType.Application.Json)
+            body = data
+        }
+        logger.info("notify $url return $json")
+    }catch(e: Exception){
+        println("post to $url failed")
+        if(count > 0){
+            println("wait one second and try again...")
+            delay(1000L)
+            post_order(url, data, count - 1)
+        }
+    } 
+}
+suspend fun post_wx_msg( o: Order, count: Int = 5){
+    val client = HttpClient() {
+        install(JsonFeature) {
+            serializer = JacksonSerializer()
+        }
+    }
+    try{
+        if(o.id_type == "openid"){
+            val ret = client.post<String>{
+                url(URL(wx_noty_url))
+                contentType(ContentType.Application.Json)
+                body = mapOf(
+                    "touser" to o.id,
+                    "url" to "http://buy.nanyue.net.cn/ccb/",
+                    "data" to mapOf(
+                        "name" to mapOf(
+                            "value" to "大庙门票！",
+			                "color" to "#173177"
+                        ),
+                        "price" to mapOf(
+                            "value" to "0.01(元)",
+			                "color" to "#173177"
+                        ),
+                        "duetime" to mapOf(
+                            "value" to "2018-11-24",
+			                "color" to "#173177"
+                        ),
+                        "remark" to mapOf(
+                            "value" to "点击获取电子票\n并在闸机处刷码过闸",
+			                "color" to "#173177"
+                        )
+                    )
+                )
+            }
+            logger.info("post_wx_msg($wx_noty_url)return $ret")
+        } else {
+            
+        }
+        
+    }catch(e: Exception){
+        println("post_wx_msg($wx_noty_url) failed")
+        if(count > 0){
+            println("wait one second and try again...")
+            delay(1000L)
+            post_wx_msg(o, count - 1)
+        }
+    } 
 }

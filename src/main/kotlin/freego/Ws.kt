@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.*
 import com.fasterxml.jackson.datatype.jsr310.*
 import com.fasterxml.jackson.module.kotlin.*
 
+import io.ktor.application.*
+
 import io.ktor.http.cio.websocket.*
 import kotlinx.coroutines.channels.*
 import java.util.*
@@ -31,7 +33,7 @@ class WsDealer {
             // println("no contain $socket")
         }
     }
-    suspend fun handle_msg(req: Command, sock: WebSocketSession) {
+    suspend fun handle_msg(req: Command, sock: WebSocketSession, call: ApplicationCall) {
         if(req.cmd == "reg_cli_id"){
             cli_online(req.data, sock)
             val paids = mdb.find_pending_paid(req.data)
@@ -44,7 +46,8 @@ class WsDealer {
         } else if(req.cmd == "req_qr"){
             try{
                 val data = json_mapper.readValue<Pending>(req.data)
-                val qr_url = ccb_req_qr(data)
+                var qr_url = ccb_req_qr(data)
+                qr_url = affixed_qr_url(call, qr_url, data.out_trade_no)
                 val res_data = json_mapper.writeValueAsString(
                     mapOf(
                         "ret" to 0,

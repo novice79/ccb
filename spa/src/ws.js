@@ -8,10 +8,11 @@ class WS {
       window.cli_id = uuidv1()
       localStorage.setItem('cli_id', window.cli_id)
     }
-    _.bindAll(this, ['on_message', 'on_close', 'on_error', 'on_open'])
-    this.init()
+    _.bindAll(this, ['on_message', 'on_close', 'on_error', 'on_open', 'send'])
+    this.init()    
   }
   init() {
+    this.connected = false;
     this.ws = new WebSocket("ws://" + window.location.host + location.pathname + "/ws");    
     this.ws.onmessage = this.on_message;
     this.ws.onclose = this.on_close;
@@ -38,6 +39,7 @@ class WS {
   }
   on_open() {
     // this.register_ui_evt()
+    this.connected = true;
     this.send({
       cmd: 'reg_cli_id',
       data: cli_id
@@ -52,6 +54,9 @@ class WS {
   }
  
   send(data) {
+    if( !this.connected ){
+      return setTimeout(this.send, 1000, data);
+    }
     this.ws.send(JSON.stringify(data) );
   }
 

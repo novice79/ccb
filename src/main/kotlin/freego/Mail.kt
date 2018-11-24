@@ -34,13 +34,13 @@ fun sendMail(subject: String, text: String) {
         addresses in an array of InternetAddress objects*/
         val address = InternetAddress.parse(mail_to, true)
         //Setting the recepients from the address variable
-        msg.setFrom(InternetAddress(mail_from))
+        msg.setFrom(InternetAddress(mail_from, "建行支付平台"))
         msg.setRecipients(Message.RecipientType.TO, address)
         val timeStamp = SimpleDateFormat("yyyy-mm-dd hh:mm:ss").format(Date())
         msg.setSubject("$subject($timeStamp)")
         msg.setSentDate(Date())
-        msg.setText(text)
-        // msg.setText(text, "utf-8", "html");
+        // msg.setText(text)
+        msg.setText(text, "utf-8", "html");
         // msg.setContent(text, "text/html; charset=utf-8");
         msg.setHeader("XPriority", "1")
         Transport.send(msg)

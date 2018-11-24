@@ -1,7 +1,5 @@
 <template>
   <div class="finish">
-    <header>南岳门票处</header>
-    <div class="content">
       <div class="ti">
         <div><h2>恭喜购票成功</h2></div>
         <div>
@@ -18,8 +16,6 @@
         </div>
       </div>
       <router-link class="gohome" to="/">再次购买</router-link>
-    </div>
-    <footer>for 建行支付测试</footer>
   </div>
 </template>
 
@@ -36,7 +32,7 @@ export default {
 
   },
   mounted() {
-    this.order = JSON.parse(sessionStorage.getItem('order'))
+    this.order = this.$route.query;
   },
   data() {
     return {
@@ -57,8 +53,8 @@ export default {
   },
   methods: {
     save_session(order){
-      console.log('save session:'+JSON.stringify(order))
-      sessionStorage.setItem('order', JSON.stringify(order) )
+      // console.log('save session:'+JSON.stringify(order))
+      // sessionStorage.setItem('order', JSON.stringify(order) )
     }
   }
 };
@@ -93,14 +89,7 @@ canvas{
   overflow: hidden;
   font-weight: 700;
 }
-header {
-  background-color: rgb(132, 226, 69);
-}
-footer {
-  /* bottom: 0;
-  position: fixed; */
-  background-color: lightgray;
-}
+
 .ti > div{
   color: white;
   margin-top: 1em;
@@ -111,13 +100,7 @@ footer {
   margin-bottom: 1em;
 }
 
-header,
-footer {
-  text-align: center;
-  min-width: 100%;
-  min-height: 2rem;
-  line-height: 2em;
-}
+
 button {
   font-size: 1.2rem;
   margin: 0.5em .5rem;
@@ -128,16 +111,7 @@ button {
 .caption{
   min-width: 4em;
 }
-.content {
-  display: flex;
-  flex-flow: column;
-  align-items: center;
-  background-image: url("../assets/bg.jpg");
-  background-position: center;
-  background-repeat: no-repeat;
-  background-size: cover;
-  min-height: calc(100vh - 4rem);
-}
+
 .gohome{
   /* width: 8em; */
   padding: .8em;

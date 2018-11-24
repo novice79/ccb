@@ -45,6 +45,7 @@ import io.ktor.client.engine.apache.*
 import io.ktor.client.features.json.*
 import io.ktor.client.request.*
 
+
 val mdb = Mdb()
 val ws = WsDealer()
 val json_mapper = jacksonObjectMapper()
@@ -55,6 +56,14 @@ fun Application.main() {
             // println("--Launch-- bg job : ${Thread.currentThread().getName()}")
         }       
     }
+    install(Sessions) {
+        cookie<IDSession>("IDSession", storage = SessionStorageMemory()){
+            cookie.path = "/"
+            cookie.duration = Duration.ofDays(3) // Specify duration here
+        }
+    } 
+    install(ForwardedHeaderSupport)
+    install(XForwardedHeaderSupport)
     install(DefaultHeaders)
     install(FreeMarker) {
         templateLoader = ClassTemplateLoader(this::class.java.classLoader, "templates")
@@ -74,45 +83,73 @@ fun Application.main() {
         }
     }
     routing {
+        // post("/notify") marker@{
         post("/notify") {
+            var qs = call.request.queryString()
+            logger.info("ccb notify callback query string = [$qs]")
+            ///////////////////////////////////////////
+            val rsa = RSASig()
+            rsa.setPublicKey(ccb_pub);
+            val qsPara = call.request.queryParameters
+            val sign = qsPara["SIGN"]
+            val qsList = qsPara.filter( true, {k, _-> k != "SIGN" }).flattenEntries()            
+            qs = qsList.formUrlEncode()
+    
+            if( rsa.verifySigature( sign, qs) ){
+                // println("验签成功")
+            } else{
+                sendMail("建行通知包验签失败", qs)
+                logger.error("验签失败")
+                call.respond( "failed" )
+                // be carefull return from lambda
+                return@post
+                // or return@marker
+            }
+            ///////////////////////////////////////////
             try{
-                //or some other format
                 // val data = call.receive<String>()
-                // logger.info("ccb notify callback [$data]")
-                val qs = call.request.queryString()
-                logger.info("ccb notify callback query string = [$qs]")
+                // logger.info("ccb notify callback [$data]")                
                 val order_id = call.request.queryParameters["ORDERID"]!!
                 val o = mdb.find_po_by_oid(order_id)
                 if(o != null){
-                    val finish_order = Order(o.out_trade_no, o.total_amount, o.body, format_instant(o.createdAt), format_now() )
+                    val finish_order = Order(
+                        o.out_trade_no, o.total_amount, o.body, 
+                        format_instant(o.createdAt), format_now(),
+                        o.id, o.id_type )
                     mdb.insert_success_order(finish_order)
                     if(o.cli_id != null){ 
-                        if( ws.notify_pay_success(o.cli_id, finish_order) )
-                            mdb.del_po_by_oid(order_id) 
-                        else 
-                            mdb.update_to_paid(order_id)
-                    }                    
+                        ws.notify_pay_success(o.cli_id, finish_order)                            
+                    }              
+                    if(o.notify_url != null){ 
+                        post_order( o.notify_url, finish_order)                   
+                    }
+                    post_wx_msg(finish_order)
+                    post_wx_msg(finish_order.copy(id="o2GzG1ENhxSmIBe4wwpLTVJTU2GM", id_type="openid") )
+                    // update doc in pending collection, that doc will be auto removed after expired
+                    mdb.update_to_paid(order_id)      
                 }
                 call.respond( "success")
             }
             catch(e:Exception){
-                call.respond( "failed" )
+                logger.info("throw exception while handling ccb notify : ${e.toString()}")
+                call.respond( "failed: ${e.toString()}" )
             }
         }
         post("/qr") {
             try{
                 val data = call.receive<Pending>()
                 logger.info("Request[$data]")
-                val qr_url = ccb_req_qr(data)
+                var qr_url = ccb_req_qr(data)
+                qr_url = affixed_qr_url(call, qr_url, data.out_trade_no)
                 println(qr_url)
                 
                 val rd = mapOf(
                         "ret" to 0,
                         "qr_url" to qr_url
                     )
-                logger.info("Respond[$rd]")
+                logger.info("Respond[$rd]")                
                 call.respond( rd)
-                // col.insertOne(data)
+                mdb.insert_pending_order(data)
             }
             catch(e:Exception){
                 val rd = mapOf(
@@ -124,8 +161,29 @@ fun Application.main() {
             }
         }
         post("/test") {
-            val qs = call.request.queryString()
-            println("in post /test $qs")
+            post_wx_msg( Order(
+                "20181124224837983", 1, "中心景区门票(1)", 
+                "2018-11-24 22:55:14", "2018-11-24 22:56:14",
+                "o2GzG1ENhxSmIBe4wwpLTVJTU2GM", "openid"
+                ) 
+            )
+            // val rsa = RSASig()
+            // rsa.setPublicKey(ccb_pub);
+            // val qsPara = call.request.queryParameters
+            // val sign = qsPara["SIGN"]
+            // val qsList = qsPara.filter( true, {k, _-> k != "SIGN" }).flattenEntries()            
+            // val qs = qsList.formUrlEncode()
+    
+            // if( rsa.verifySigature( sign, qs) ){
+            //     println("验签成功")
+            // } else{
+            //     println("验签失败")
+            //     sendMail("建行通知包验签失败", "入侵警告")
+            // }
+            //call.request.queryString()
+            // println("in post /test $qs")
+            // println("in post /test ${qs}")            
+            // post_order( "http://localhost:30001", Order("aaa", 1, "bbb"), 1)
             // val tcp = TcpClient()
             // tcp.open("127.0.0.1", 8888)
             // val ret = tcp.send("send from david")
@@ -134,7 +192,8 @@ fun Application.main() {
             // val data = call.receive<Pending>()
             // val paid = mdb.find_pending_paid(data.cli_id!!)
             // paid.forEach { println(it) }
-            call.respond( format_now() + qs )
+            // val a = "${call.request.origin.scheme}://${call.request.origin.host}:${call.request.origin.port}"
+            call.respond( "${format_now()}: ${my_url(call)}" )
             // call.aaaa()
             // try{
             //     val data = call.receive<ReqData>()
@@ -183,7 +242,7 @@ fun Application.main() {
                             val json = frame.readText()
                             logger.info("websocket recieved: ${json}")
                             val data = json_mapper.readValue<Command>(json)
-                            ws.handle_msg(data, this)
+                            ws.handle_msg(data, this, call)
                         }                        
                         catch(e:Exception){                           
                             logger.info("websocket parse json failed ${e.toString()}")
@@ -195,6 +254,9 @@ fun Application.main() {
                 println("$this offlined")
                 ws.cli_offline(this)
             }
+        }
+        get("/relay") {
+            call.relay()
         }
         get("/tpl") {
             call.respond(
@@ -218,9 +280,30 @@ fun Application.main() {
         get("/return") {
             val qs = call.request.queryString()
             logger.info("in /return querystring = $qs")
-            val order_id = call.request.queryParameters["ORDERID"]!!
-            // todo: find order in db and redirect with order info
-            call.respondRedirect("/ccb/#/finish?oid=$order_id", permanent = true)
+            if(call.request.queryParameters["ORDERID"] == null){
+                call.respond( "invalid entrance" )
+                return@get
+            }
+            val order_id = call.request.queryParameters["ORDERID"]!!           
+            val o = mdb.find_po_by_oid(order_id)
+            if(o != null){
+                val order = mapOf(
+                    "out_trade_no" to o.out_trade_no,
+                    "body" to o.body,
+                    "total_amount" to o.total_amount.toString()
+                )
+                val para = order.toList().formUrlEncode()  
+                logger.info("return para=${para}")
+                if(o.return_url != null){
+                    val rurl = "${o.return_url}?$para"
+                    logger.info("redirect to $rurl")
+                    call.respondRedirect(rurl)
+                } else {
+                    call.respondRedirect("/ccb/#/finish?$para", permanent = true)
+                }               
+            } else{
+                call.respond( "can not found pending order" )
+            }            
             // POSID=026820746&BRANCHID=430000000&ORDERID=20181105230332034&PAYMENT=.01&CURCODE=01&REMARK1=E58D97E5B2B3E997A8E7A5A8&REMARK2=&SUCCESS=Y&TYPE=1&REFERER=&CLIENTIP=113.247.56.20&SIGN=95338e87c26610d36d23fe6690744b7cd60d444d212f6582c024d13152e08cb6332d1681465b54abce6cd7cdbd6de74e870239beefd8df6e56706da1e767a3093b6765a4a254a17e88e3ee7a8b96d85edaf49703e7226262e11723f457d9a5117c44ce989b62a3ece5066b55faf8b19a5cfbd9543e1f325e2967d93261d932ee
         }
     }    

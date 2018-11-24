@@ -1,7 +1,6 @@
 <template>
   <div class="ticket">
-    <header>南岳门票处</header>
-    <div class="content">
+    
       <!-- <button @click.prevent="to_finish()">go test</button> -->
       <div class="ti" v-for="t in tickets">
         <div style="min-width:6em;">{{t.name}}</div>
@@ -11,16 +10,15 @@
           &nbsp;
           <button class="op" @click.prevent="++t.count">&plus;</button>
           &nbsp;
-          <button class="op" @click.prevent="t.count > 0 ? --t.count: 0">&minus;</button>
+          <button class="op" @click.prevent="t.count > 0 ? --t.count: 0" v-bind:disabled="t.count <= 0">&minus;</button>
         </div>
       </div>
       <div style="color:white;margin-top:.5em;">总计：{{parseFloat(total).toFixed(2)}}(元)</div>
       <button v-if="total>0 && !requesting" @click.prevent="gzh_buy()">公众号购买</button>
-      <button v-if="total>0 && !requesting" @click.prevent="qr_buy()">扫码支付</button>
+      <button class="scan" v-if="total>0 && !requesting" @click.prevent="qr_buy()">扫码支付</button>
       <div v-if="requesting" style="color:gold;"> <h2>请稍后……</h2> </div>
       <canvas id="qr"></canvas>
-    </div>
-    <footer>for 建行支付测试</footer>
+    
   </div>
 </template>
 
@@ -37,11 +35,11 @@ export default {
   created: function() {
     this.$root.$on("req_qr", data => {
       this.requesting = false
-      this.save_session(data.data)
+      // this.save_session(data.data)
       this.cb(data);
     });
-    this.$root.$on("pay_success", data => {
-      this.$router.push('finish')
+    this.$root.$on("pay_success", data => {      
+      this.$router.push({ path: 'finish', query: data.data})
       // this.$router.replace('finish')
       
     });
@@ -103,10 +101,10 @@ export default {
     // to_finish(){
     //   this.$router.replace('finish')
     // },
-    save_session(order){
-      console.log('save session:'+ order, typeof order)
-      sessionStorage.setItem('order', order) 
-    },
+    // save_session(order){
+    //   console.log('save session:'+ order, typeof order)
+    //   sessionStorage.setItem('order', order) 
+    // },
     req_qr() {
       this.requesting = true;
       const data = {
@@ -177,27 +175,20 @@ canvas{
   overflow: hidden;
   font-weight: 700;
 }
-header {
-  background-color: rgb(132, 226, 69);
-}
-footer {
-  /* bottom: 0;
-  position: fixed; */
-  background-color: lightgray;
-}
-header,
-footer {
-  text-align: center;
-  min-width: 100%;
-  min-height: 2rem;
-  line-height: 2em;
-}
+
 button {
   font-size: 1.2rem;
   margin: 0.5em .5rem;
   background-color: bisque;
   border-radius: 0.9em;
   color: #42b983;
+}
+button:disabled{
+  background-color: #CCC;
+  color: lightslategrey;
+}
+.scan{
+  background-color: saddlebrown;
 }
 .op {
   opacity: .7;
@@ -208,13 +199,5 @@ button {
   display: inline-block;
   margin: inherit;
 }
-.content {
-  display: flex;
-  flex-flow: column;
-  background-image: url("../assets/bg.jpg");
-  background-position: center;
-  background-repeat: no-repeat;
-  background-size: cover;
-  min-height: calc(100vh - 4rem);
-}
+
 </style>

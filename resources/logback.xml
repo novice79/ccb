@@ -8,7 +8,7 @@
         <!-- <append>false</append> -->
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
         <!-- daily rollover -->
-        <fileNamePattern>ksvr_%d{yyyy-MM-dd}.log</fileNamePattern>
+        <fileNamePattern>/data/apps/ccb/log/ccb_%d{yyyy-MM-dd}.log</fileNamePattern>
         <!-- keep 30 days' worth of history capped at 3GB total size -->
         <maxHistory>30</maxHistory>
         <totalSizeCap>3GB</totalSizeCap>
