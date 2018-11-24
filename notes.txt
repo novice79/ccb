@@ -41,3 +41,6 @@ this.waitForConnection = function (callback, interval) {
         }, interval);
     }
 };
+git filter-branch --force --index-filter \
+'git rm --cached --ignore-unmatch ccb.i' \
+--prune-empty --tag-name-filter cat -- --all
