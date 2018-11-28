@@ -112,11 +112,14 @@ fun format_instant(instant: Instant): String{
     return output
 }
 fun affixed_qr_url(c: ApplicationCall, qr_url: String, out_trade_no: String): String{
-    val qs = listOf(
-        "tourl" to qr_url,
-        "out_trade_no" to out_trade_no
-        ).formUrlEncode()
-    return "${my_url(c)}/relay?$qs"
+    if(enable_nodejs_addon){
+        val qs = listOf(
+            "tourl" to qr_url,
+            "out_trade_no" to out_trade_no
+            ).formUrlEncode()
+        return "${my_url(c)}/relay?$qs"
+    }
+    return qr_url
 }
 fun my_url(c: ApplicationCall): String{
     var uri =  "${c.request.origin.scheme}://${c.request.origin.host}"

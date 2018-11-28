@@ -123,8 +123,10 @@ fun Application.main() {
                     if(o.notify_url != null){ 
                         post_order( o.notify_url, finish_order)                   
                     }
-                    post_wx_msg(finish_order)
-                    post_wx_msg(finish_order.copy(id="o2GzG1ENhxSmIBe4wwpLTVJTU2GM", id_type="openid") )
+                    if(enable_nodejs_addon){
+                        post_wx_msg(finish_order)
+                        // post_wx_msg(finish_order.copy(id="o2GzG1ENhxSmIBe4wwpLTVJTU2GM", id_type="openid") )
+                    }                    
                     // update doc in pending collection, that doc will be auto removed after expired
                     mdb.update_to_paid(order_id)      
                 }
