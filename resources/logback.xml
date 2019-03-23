@@ -1,21 +1,21 @@
 <configuration>
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
-            <pattern>%d{YYYY-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+            <pattern>%d{YYYY-MM-dd HH:mm:ss.SSS, Asia/Shanghai} [%thread] %-5level %logger{36} - %msg%n</pattern>
         </encoder>
     </appender>
     <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <!-- <append>false</append> -->
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
         <!-- daily rollover -->
-        <fileNamePattern>/data/apps/ccb/log/ccb_%d{yyyy-MM-dd}.log</fileNamePattern>
-        <!-- keep 30 days' worth of history capped at 3GB total size -->
+        <fileNamePattern>./log/ccb_%d{yyyy-MM-dd, Asia/Shanghai}.log</fileNamePattern>
+        <!-- keep 30 days' worth of history capped at 1GB total size -->
         <maxHistory>30</maxHistory>
-        <totalSizeCap>3GB</totalSizeCap>
+        <totalSizeCap>1GB</totalSizeCap>
 
         </rollingPolicy>
         <encoder>
-        <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5p %logger{36} %m%n</pattern>
+        <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS, Asia/Shanghai} [%thread] %-5p %logger{36} %m%n</pattern>
         </encoder>
     </appender>
     <root level="INFO">

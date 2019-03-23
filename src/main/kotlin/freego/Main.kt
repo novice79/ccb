@@ -53,7 +53,7 @@ fun Application.main() {
      launch {
         while(true){
             delay(1000)
-            // println("--Launch-- bg job : ${Thread.currentThread().getName()}")
+            // logger.info("--Launch-- bg job : ${Thread.currentThread().getName()}")
         }       
     }
     install(Sessions) {
@@ -96,7 +96,7 @@ fun Application.main() {
             qs = qsList.formUrlEncode()
     
             if( rsa.verifySigature( sign, qs) ){
-                // println("验签成功")
+                // logger.info("验签成功")
             } else{
                 sendMail("建行通知包验签失败", qs)
                 logger.error("验签失败")
@@ -112,13 +112,20 @@ fun Application.main() {
                 val order_id = call.request.queryParameters["ORDERID"]!!
                 val o = mdb.find_po_by_oid(order_id)
                 if(o != null){
+                    if(o.status != "unpaid"){
+                        call.respond( "success")
+                        return@post
+                    }
+                    var s = "paid"
                     val finish_order = Order(
                         o.out_trade_no, o.total_amount, o.body, 
                         format_instant(o.createdAt), format_now(),
                         o.id, o.id_type )
                     mdb.insert_success_order(finish_order)
                     if(o.cli_id != null){ 
-                        ws.notify_pay_success(o.cli_id, finish_order)                            
+                        if( ws.notify_pay_success(o.cli_id, finish_order) ){
+                            s = "notified"  
+                        }                                                 
                     }              
                     if(o.notify_url != null){ 
                         post_order( o.notify_url, finish_order)                   
@@ -128,7 +135,7 @@ fun Application.main() {
                         // post_wx_msg(finish_order.copy(id="o2GzG1ENhxSmIBe4wwpLTVJTU2GM", id_type="openid") )
                     }                    
                     // update doc in pending collection, that doc will be auto removed after expired
-                    mdb.update_to_paid(order_id)      
+                    mdb.update_po_status(order_id, s)      
                 }
                 call.respond( "success")
             }
@@ -143,7 +150,7 @@ fun Application.main() {
                 logger.info("Request[$data]")
                 var qr_url = ccb_req_qr(data)
                 qr_url = affixed_qr_url(call, qr_url, data.out_trade_no)
-                println(qr_url)
+                logger.info(qr_url)
                 
                 val rd = mapOf(
                         "ret" to 0,
@@ -177,14 +184,14 @@ fun Application.main() {
             // val qs = qsList.formUrlEncode()
     
             // if( rsa.verifySigature( sign, qs) ){
-            //     println("验签成功")
+            //     logger.info("验签成功")
             // } else{
-            //     println("验签失败")
+            //     logger.info("验签失败")
             //     sendMail("建行通知包验签失败", "入侵警告")
             // }
             //call.request.queryString()
-            // println("in post /test $qs")
-            // println("in post /test ${qs}")            
+            // logger.info("in post /test $qs")
+            // logger.info("in post /test ${qs}")            
             // post_order( "http://localhost:30001", Order("aaa", 1, "bbb"), 1)
             // val tcp = TcpClient()
             // tcp.open("127.0.0.1", 8888)
@@ -193,7 +200,7 @@ fun Application.main() {
             // sendMail("告警测试", "入侵警告")
             // val data = call.receive<Pending>()
             // val paid = mdb.find_pending_paid(data.cli_id!!)
-            // paid.forEach { println(it) }
+            // paid.forEach { logger.info(it) }
             // val a = "${call.request.origin.scheme}://${call.request.origin.host}:${call.request.origin.port}"
             call.respond( "${format_now()}: ${my_url(call)}" )
             // call.aaaa()
@@ -227,15 +234,15 @@ fun Application.main() {
             //             serializer = JacksonSerializer()
             //         }
             //     }
-            //     println("Requesting test...")
+            //     logger.info("Requesting test...")
             //     val aaa = client.post<Item>(port = 8080, path = "/json")
-            //     println("Fetching data = '${aaa.ret}'...")
+            //     logger.info("Fetching data = '${aaa.ret}'...")
             //     aaa
             // }
             // call.respond(res.await())
         }
         webSocket("/ws") { // this: WebSocketSession ->
-            // println("onConnect")
+            // logger.info("onConnect")
             try {
                 incoming.consumeEach { frame ->
                     // Frames can be [Text], [Binary], [Ping], [Pong], [Close].
@@ -253,7 +260,7 @@ fun Application.main() {
                 }
             } finally {
                 // Either if there was an error, of it the connection was closed gracefully.
-                println("$this offlined")
+                // logger.info("$this offlined")
                 ws.cli_offline(this)
             }
         }
@@ -302,7 +309,10 @@ fun Application.main() {
                     call.respondRedirect(rurl)
                 } else {
                     call.respondRedirect("/ccb/#/finish?$para", permanent = true)
-                }               
+                }  
+                if(o.status == "notified") {
+                    mdb.del_po_by_oid(o.out_trade_no) 
+                }            
             } else{
                 call.respond( "can not found pending order" )
             }            
@@ -312,6 +322,6 @@ fun Application.main() {
 }
 
 fun main(args: Array<String>) {
-    println( "Hello david" )
+    logger.info( "Hello david" )
     
 }

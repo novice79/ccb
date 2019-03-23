@@ -20,8 +20,13 @@ class WsDealer {
     val sock2id = ConcurrentHashMap<WebSocketSession, String>()
     val id2sock = ConcurrentHashMap<String, WebSocketSession>()
     suspend fun cli_online(id: String, socket: WebSocketSession) {
+        if(id2sock[id] != null){
+            val old_sock = id2sock[id]
+            sock2id.remove( old_sock )
+        }
         id2sock[id] = socket
         sock2id[socket] = id
+        logger.info("cli_online  id2sock.size=${id2sock.size} && sock2id.size=${sock2id.size}")
     }
     suspend fun cli_offline(socket: WebSocketSession) {
         if( sock2id[socket] != null ){
@@ -32,6 +37,7 @@ class WsDealer {
         } else {
             // println("no contain $socket")
         }
+        logger.info("cli_offline  id2sock.size=${id2sock.size} && sock2id.size=${sock2id.size}")
     }
     suspend fun handle_msg(req: Command, sock: WebSocketSession, call: ApplicationCall) {
         if(req.cmd == "reg_cli_id"){

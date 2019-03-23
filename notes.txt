@@ -46,3 +46,96 @@ git filter-branch --force --index-filter \
 --prune-empty --tag-name-filter cat -- --all
 
 git push --force
+
+sudo lsof -i :8080 | wc -l
+netstat -tunlp | grep 8080
+cat /proc/32122/limits
+
+$ ulimit -n
+64000
+$ ulimit -Hn
+64000
+$ ulimit -Sn
+64000
+
+The actual way to raise your descriptors consists of editing three files:
+
+/etc/security/limits.conf needs to have these lines in it:
+
+*    soft nofile 64000
+*    hard nofile 64000
+root soft nofile 64000
+root hard nofile 64000
+The asterisk at the beginning of the first two lines means ‘apply this rule to all users except root’, and you can probably guess that the last two lines set the limit only for the root user. The number at the end is of course, the new limit you’re setting. 64000 is a pretty safe number to use
+
+/etc/pam.d/common-session needs to have this line in it:
+
+session required pam_limits.so
+/etc/pam.d/common-session-noninteractive also needs to have this line in it:
+
+session required pam_limits.so
+
+/etc/supervisor/supervisord.conf, in the [supervisord] section:
+minfds=64000
+
+https://underyx.me/2015/05/18/raising-the-maximum-number-of-file-descriptors
+
+
+sudo vi /etc/security/limits.conf
+*    soft nofile 164000
+*    hard nofile 164000
+root soft nofile 164000
+root hard nofile 164000
+
+//in ub18.04 desktop
+sudo vi /etc/systemd/system.conf
+DefaultLimitNOFILE=64000
+gnome-session-quit --force //no effect and must reboot
+
+docker run -it --rm --ulimit nofile=90000:90000 ubuntu bash
+//OR
+docker run -it --rm --ulimit nofile=900001 ubuntu bash
+
+[program:ccb]
+directory=/data/apps/ccb/
+command=java -jar ktor_svr-1.0-all.jar
+user=david
+autostart=true
+autorestart=unexpected
+redirect_stderr=true
+std_out_logfile=NONE
+startsecs=1
+
+
+db.order.find({
+        "time_end": {
+            $gte: "2018-12-29 00:00:00",
+            $lt: "2018-12-29 23:59:59"
+        }
+}).count()
+
+db.order.aggregate({ 
+    $match: {
+    "time_end": {
+            $gte: "2018-12-29 00:00:00",
+            $lt: "2018-12-29 23:59:59"
+        }
+    } 
+},
+{ $group: { _id : null, total : { $sum: "$total_amount" } } 
+},
+{ $project: { _id: 0, total: { $divide: [ "$total", 100 ] } } }
+);
+
+db.order.find({
+        "time_end": {
+            $gte: "2018-12-29 18:00:00",
+            $lt: "2018-12-29 23:59:59"
+        }
+});
+
+//aly1
+db.orders.aggregate(
+{ $group: { _id : null, total : { $sum: "$total_fee" } } },
+{ $project: { _id: 0, total: { $divide: [ "$total", 100 ] } } }
+);

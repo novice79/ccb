@@ -47,10 +47,10 @@ class Mdb{
         col.deleteOne("{out_trade_no:'${out_trade_no}'}")
         // col.deleteOne(Pending::out_trade_no eq out_trade_no)
     }
-    fun update_to_paid(out_trade_no: String){
+    fun update_po_status(out_trade_no: String, s: String){
         val col = database.getCollection<Pending>() 
         val now_str = format_now()
-        col.findOneAndUpdate("{out_trade_no:'${out_trade_no}'}", "{$set: {status: 'paid', time_end: '$now_str'}}")
+        col.findOneAndUpdate("{out_trade_no:'${out_trade_no}'}", "{$set: {status: '${s}', time_end: '$now_str'}}")
     }
     fun set_po_uid(out_trade_no: String, id: String, id_type: String){
         val col = database.getCollection<Pending>() 
