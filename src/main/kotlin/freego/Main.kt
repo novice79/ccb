@@ -237,6 +237,7 @@ fun Application.main() {
             //     logger.info("Requesting test...")
             //     val aaa = client.post<Item>(port = 8080, path = "/json")
             //     logger.info("Fetching data = '${aaa.ret}'...")
+            //     client.close()
             //     aaa
             // }
             // call.respond(res.await())

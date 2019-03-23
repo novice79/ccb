@@ -22,6 +22,7 @@ class WsDealer {
     suspend fun cli_online(id: String, socket: WebSocketSession) {
         if(id2sock[id] != null){
             val old_sock = id2sock[id]
+            old_sock!!.close(CloseReason(CloseReason.Codes.NORMAL, "Same client online"))
             sock2id.remove( old_sock )
         }
         id2sock[id] = socket

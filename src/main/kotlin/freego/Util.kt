@@ -44,6 +44,13 @@ import io.ktor.client.*
 import io.ktor.client.engine.apache.*
 import io.ktor.client.features.json.*
 import io.ktor.client.request.*
+
+
+val http_client = HttpClient() {
+        install(JsonFeature) {
+            serializer = JacksonSerializer()
+        }
+    }
 // URLEncoder.encode(url, "UTF-8") 
 suspend fun ccb_req_qr(data: Pending): String{
     val order = mutableMapOf(
@@ -74,24 +81,20 @@ suspend fun ccb_req_qr(data: Pending): String{
     val para = order.toList().formUrlEncode()            
     val mac = md5("$para&PUB=$ccb_pub30" )
     val url = "$ccb_url&${para}&MAC=${mac}"
-    val client = HttpClient() {
-        install(JsonFeature) {
-            serializer = JacksonSerializer()
-        }
-    }
+    
     // println(url)
-    val json = client.post<String>{
+    val json = http_client.post<String>{
         url(URL(url))
         contentType(ContentType.Application.Json)
     }
     println(json)
     
     val outer_ret = json_mapper.readValue<StrMap>(json)
-    val inner_ret = client.post<String>( outer_ret["PAYURL"]!! )
+    val inner_ret = http_client.post<String>( outer_ret["PAYURL"]!! )
     // println(inner_ret)
     val qr_res = json_mapper.readValue<StrMap>(inner_ret)
     val qr_url = URLDecoder.decode(qr_res["QRURL"]!!, "UTF-8")
-    
+
     return qr_url
 }
 fun md5(data: String): String{
@@ -132,13 +135,9 @@ fun my_url(c: ApplicationCall): String{
     return "$uri$residence"
 }
 suspend fun post_order( url: String, data: Order, count: Int = 5){
-    val client = HttpClient() {
-        install(JsonFeature) {
-            serializer = JacksonSerializer()
-        }
-    }
+
     try{
-        val json = client.post<String>{
+        val json = http_client.post<String>{
             url(URL(url))
             contentType(ContentType.Application.Json)
             body = data
@@ -154,14 +153,10 @@ suspend fun post_order( url: String, data: Order, count: Int = 5){
     } 
 }
 suspend fun post_wx_msg( o: Order, count: Int = 5){
-    val client = HttpClient() {
-        install(JsonFeature) {
-            serializer = JacksonSerializer()
-        }
-    }
+
     try{
         if(o.id_type == "openid"){
-            val ret = client.post<String>{
+            val ret = http_client.post<String>{
                 url(URL(wx_noty_url))
                 contentType(ContentType.Application.Json)
                 body = mapOf(
