@@ -110,6 +110,12 @@ fun Application.main() {
                 // val data = call.receive<String>()
                 // logger.info("ccb notify callback [$data]")                
                 val order_id = call.request.queryParameters["ORDERID"]!!
+                val is_success = call.request.queryParameters["SUCCESS"]!!
+                logger.info("ccb notify callback order_id=$order_id, is_success=$is_success")
+                if(is_success == "N"){
+                    logger.info("--------------------notify pay failed, do nothing------------------")
+                    return@post
+                }
                 val o = mdb.find_po_by_oid(order_id)
                 if(o != null){
                     if(o.status != "unpaid"){

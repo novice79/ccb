@@ -96,9 +96,10 @@ docker run -it --rm --ulimit nofile=90000:90000 ubuntu bash
 //OR
 docker run -it --rm --ulimit nofile=900001 ubuntu bash
 
+//original: java -jar ktor_svr-1.0-all.jar
 [program:ccb]
 directory=/data/apps/ccb/
-command=java -jar ktor_svr-1.0-all.jar
+command=java -jar ktor_svr-1.0.jar
 user=david
 autostart=true
 autorestart=unexpected
@@ -139,3 +140,11 @@ db.orders.aggregate(
 { $group: { _id : null, total : { $sum: "$total_fee" } } },
 { $project: { _id: 0, total: { $divide: [ "$total", 100 ] } } }
 );
+
+ps -o rss= `pidof java` | awk '{printf "%.0f\n", $1 / 1024}'
+ps -o vsz= `pidof java` | awk '{printf "%.0f\n", $1 / 1024}'
+sudo lsof -i :8080 | wc -l
+
+POSID=028355056&BRANCHID=430000000&ORDERID=156134016171176399&PAYMENT=384.00&CURCODE=01&REMARK1=&REMARK2=&ACC_TYPE=02&SUCCESS=N&ACCDATE=&SIGN=490d1cb32732946f2059be0c14aa4e3c2222caa50ea7fcff9c0a7154ebe56aebd1d6a8d263e1c1dd004f38817d89ca09f83f921baa7c876936f4b994fd8d8cca39b0cb107aa5eefcfa38d74706997176e75acf4807466e165ee82ccdac1e4d4d71007d675d6849154830d50691ade1e6c53a3209d286747ecdcc775b31050836
+if change supervisord config
+sudo supervisorctl reread && sudo supervisorctl update
